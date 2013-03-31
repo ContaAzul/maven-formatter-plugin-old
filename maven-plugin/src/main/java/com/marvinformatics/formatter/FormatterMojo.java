@@ -40,6 +40,7 @@ import java.util.Properties;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -194,7 +195,7 @@ public class FormatterMojo extends AbstractMojo implements ConfigurationSource {
 	/**
 	 * @see org.apache.maven.plugin.AbstractMojo#execute()
 	 */
-	public void execute() throws MojoExecutionException {
+	public void execute() throws MojoExecutionException, MojoFailureException {
 		long startClock = System.currentTimeMillis();
 
 		if (StringUtils.isEmpty(encoding)) {
@@ -349,11 +350,14 @@ public class FormatterMojo extends AbstractMojo implements ConfigurationSource {
 	 * @param rc
 	 * @param hashCache
 	 * @param basedirPath
+	 * @throws MojoFailureException
+	 * @throws MojoExecutionException
 	 */
 	private void formatFile(File file, ResultCollector rc,
-			Properties hashCache, String basedirPath) {
+			Properties hashCache, String basedirPath)
+			throws MojoFailureException, MojoExecutionException {
 		try {
-			doFormatFile(file, rc, hashCache, basedirPath);
+			doFormatFile(file, rc, hashCache, basedirPath, false);
 		} catch (IOException e) {
 			rc.failCount++;
 			getLog().warn(e);
@@ -375,10 +379,13 @@ public class FormatterMojo extends AbstractMojo implements ConfigurationSource {
 	 * @param basedirPath
 	 * @throws IOException
 	 * @throws BadLocationException
+	 * @throws MojoFailureException
+	 * @throws MojoExecutionException
 	 */
-	private void doFormatFile(File file, ResultCollector rc,
-			Properties hashCache, String basedirPath) throws IOException,
-			BadLocationException {
+	protected void doFormatFile(File file, ResultCollector rc,
+			Properties hashCache, String basedirPath, boolean dryRun)
+			throws IOException, BadLocationException, MojoFailureException,
+			MojoExecutionException {
 		Log log = getLog();
 		log.debug("Processing file: " + file);
 		String code = readFileAsString(file);
@@ -395,9 +402,9 @@ public class FormatterMojo extends AbstractMojo implements ConfigurationSource {
 
 		Result r;
 		if (file.getName().endsWith(".java")) {
-			r = javaFormatter.formatFile(file, lineEnding);
+			r = javaFormatter.formatFile(file, lineEnding, dryRun);
 		} else {
-			r = jsFormatter.formatFile(file, lineEnding);
+			r = jsFormatter.formatFile(file, lineEnding, dryRun);
 		}
 
 		switch (r) {
@@ -565,12 +572,12 @@ public class FormatterMojo extends AbstractMojo implements ConfigurationSource {
 		return ending;
 	}
 
-	private class ResultCollector {
-		private int successCount;
+	class ResultCollector {
+		int successCount;
 
-		private int failCount;
+		int failCount;
 
-		private int skippedCount;
+		int skippedCount;
 	}
 
 	public String getCompilerSources() {
