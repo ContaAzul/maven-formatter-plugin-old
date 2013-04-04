@@ -116,7 +116,7 @@ public class FormatterMojo extends AbstractMojo implements ConfigurationSource {
 	 * 
 	 * @since 0.3
 	 */
-	@Parameter
+	@Parameter(property = "formatter.includes")
 	private String[] includes;
 
 	/**
